@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Cluster LLM - Console</title>
+
+<link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+
+<div class="card">
+    <h2>Cluster LLM - Testes</h2>
+
+    <label>Modelo:</label><br>
+    <select id="modelSelector"></select>
+
+    <br><br>
+
+    <label>Prompt:</label>
+    <textarea id="promptBox"></textarea>
+
+    <button id="btnNormal">Enviar (Normal)</button>
+    <button id="btnStream">Streaming</button>
+
+    <div id="responseBox">A resposta aparecerá aqui.</div>
+</div>
+
+<script src="/js/models.js"></script>
+<script src="/js/chat-normal.js"></script>
+<script src="/js/chat-stream.js"></script>
+<script src="/js/main.js"></script>
+
+</body>
+</html>

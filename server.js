@@ -8,16 +8,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "src")));
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+  res.sendFile(path.join(__dirname,"src","pages", "index.html"));
 });
 
 const ollamaServers = [
   "http://192.168.6.100:11434",
-  "http://192.168.6.101:11434",
-  "http://192.168.6.30:11434"
+  "http://192.168.6.101:11434"
 ];
 
 let currentServerIndex = 0;
