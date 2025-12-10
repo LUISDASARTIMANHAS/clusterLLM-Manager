@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Cluster LLM - Console</title>
+<style>
+    body { background:#121212;color:#fff;font-family:Arial;padding:20px }
+    .card { background:#1e1e1e;padding:20px;border-radius:10px;max-width:800px;margin:auto }
+    textarea {
+        width:100%;height:150px;background:#181818;color:#fff;
+        border:1px solid #333;padding:10px;border-radius:6px;margin-bottom:12px
+    }
+    select,button{ padding:10px;font-size:16px;border-radius:6px;border:none }
+    select{ background:#222;color:#fff }
+    button{ background:#4caf50;color:#fff;cursor:pointer }
+    #responseBox{ white-space:pre-wrap;margin-top:20px;background:#181818;padding:15px;border-radius:6px;min-height:120px;border:1px solid #333 }
+</style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Cluster LLM - Testes</h2>
+
+    <label>Modelo:</label><br>
+    <select id="modelSelector"></select>
+
+    <br><br>
+
+    <label>Prompt:</label>
+    <textarea id="promptBox"></textarea>
+
+    <button onclick="sendPrompt()">Enviar (Normal)</button>
+    <button onclick="sendStreaming()">Streaming</button>
+
+    <div id="responseBox">A resposta aparecerá aqui.</div>
+</div>
+
+<script>
+// ================= MODELOS DINÂMICOS =================
+async function loadModels() {
+    const sel = document.getElementById("modelSelector");
+    sel.innerHTML = "<option>Carregando...</option>";
+
+    const res = await fetch("/models");
+    const data = await res.json();
+
+    sel.innerHTML = "";
+    data.models.forEach(model => {
+        const op = document.createElement("option");
+        op.value = model;
+        op.textContent = model;
+        sel.appendChild(op);
+    });
+}
+loadModels();
+
+/**
+ * Envio normal (não streaming)
+ */
+async function sendPrompt() {
+    const model = modelSelector.value;
+    const prompt = promptBox.value;
+
+    responseBox.innerText = "Processando...";
+
+    const res = await fetch("/chat", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ model, prompt })
+    });
+
+    const data = await res.json();
+    responseBox.innerText = data.answer || data.error;
+}
+
+/**
+ * Streaming estilo ChatGPT
+ */
+async function sendStreaming() {
+    const model = modelSelector.value;
+    const prompt = promptBox.value;
+
+    responseBox.innerText = "";
+
+    const res = await fetch("/chat/stream", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ model, prompt })
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value);
+        responseBox.innerText += text.replace("data:", "");
+    }
+}
+</script>
+
+</body>
+</html>
