@@ -23,7 +23,7 @@ app.get("/", (req, res) => {
 // ===========================================================
 const ollamaServers = [
   "http://192.168.6.100:11434",
-  "http://192.168.6.101:11434"
+  "http://192.168.6.101:11434",
 ];
 
 let currentServerIndex = 0;
@@ -52,16 +52,17 @@ async function getNextServer(model) {
       }
 
       const json = await res.json();
-      const models = json.models.map(m => m.name);
+      const models = json.models.map((m) => m.name);
 
       if (!models.includes(model)) {
-        console.log(`Servidor ${server} NÃO possui o modelo "${model}". Ignorando.`);
+        console.log(
+          `Servidor ${server} NÃO possui o modelo "${model}". Ignorando.`
+        );
         continue;
       }
 
       console.log(`Servidor ativo e com o modelo: ${server}`);
       return server;
-
     } catch (err) {
       console.log(`Falha ao conectar no servidor ${server}: ${err.message}`);
     }
@@ -87,7 +88,7 @@ async function listModels() {
 
       if (res.ok) {
         const json = await res.json();
-        json.models.forEach(m => models.add(m.name));
+        json.models.forEach((m) => models.add(m.name));
       }
     } catch (err) {
       console.log(`Falha ao consultar ${server}: ${err.message}`);
@@ -113,12 +114,12 @@ async function generateResponse(model, prompt) {
   const res = await fetch(server + "/api/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model, prompt, stream: false })
+    body: JSON.stringify({ model, prompt, stream: false }),
   });
 
   console.log(`Status da resposta: ${res.status}`);
 
-  const data = await res.json().catch(err => {
+  const data = await res.json().catch((err) => {
     console.log("Erro ao decodificar JSON:", err.message);
     throw new Error("Resposta inválida do servidor.");
   });
@@ -158,15 +159,15 @@ app.post("/chat/stream", async (req, res) => {
       body: JSON.stringify({ model, prompt, stream: true })
     });
 
-    const reader = llm.body.getReader();
-    const decoder = new TextDecoder();
+    const reader = llm.body
+      .pipeThrough(new TextDecoderStream())  // <=== AQUI É A CORREÇÃO
+      .getReader();
 
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
 
-      const chunk = decoder.decode(value);
-      res.write(`data: ${chunk}\n\n`);
+      res.write(`data: ${value}\n\n`);
     }
 
     res.write("data: [FIM]\n\n");
@@ -178,6 +179,7 @@ app.post("/chat/stream", async (req, res) => {
     res.end();
   }
 });
+
 
 // CHAT normal
 app.post("/chat", async (req, res) => {
@@ -191,9 +193,44 @@ app.post("/chat", async (req, res) => {
     const { model, prompt } = req.body;
     const answer = await generateResponse(model, prompt);
     res.json({ answer });
-
   } catch (err) {
     console.log("Erro no processamento:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/image", async (req, res) => {
+  const { model, prompt } = req.body;
+
+  try {
+    const server = await getNextServer(model);
+
+    const response = await fetch(server + "/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        prompt,
+        stream: false  // sempre false para imagens
+      })
+    });
+
+    const data = await response.json();
+
+    /**
+     * O Ollama retorna imagem em base64 em:
+     * data.image
+     */
+    if (!data.image) {
+      return res.status(400).json({ error: "Modelo não retornou imagem." });
+    }
+
+    res.json({
+      ok: true,
+      image: data.image // base64
+    });
+
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });

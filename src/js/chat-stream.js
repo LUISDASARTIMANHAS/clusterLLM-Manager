@@ -1,5 +1,6 @@
 /**
  * Envia prompt ao cluster usando streaming SSE
+ * Corrige NDJSON fragmentado e monta JSON corretamente.
  * @return {Promise<void>}
  */
 async function sendStreaming() {
@@ -14,44 +15,35 @@ async function sendStreaming() {
         body: JSON.stringify({ model, prompt })
     });
 
-    if (!res.ok || !res.body) {
-        responseBox.innerText = "Erro ao conectar ao servidor.";
-        return;
-    }
-
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = "";
+    let buffer = ""; // armazena JSON quebrado
 
     while (true) {
         const { value, done } = await reader.read();
         if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
+        buffer += decoder.decode(value);
 
-        let lines = buffer.split("\n");
-        buffer = lines.pop(); // mantém o pedaço incompleto
+        const lines = buffer.split("\n");
+        buffer = lines.pop(); // deixa último pedaço incompleto no buffer
 
         for (const line of lines) {
-            if (!line.startsWith("data:")) continue;
+            const clean = line.replace("data:", "").trim();
+            if (!clean) continue;
 
-            const jsonText = line.replace("data:", "").trim();
-            if (!jsonText) continue;
+            if (clean === "[FIM]") {
+                responseBox.innerText += "\n[FIM]";
+                return;
+            }
 
             try {
-                const parsed = JSON.parse(jsonText);
-
-                if (parsed.error) {
-                    responseBox.innerText += "\n[ERRO] " + parsed.error;
-                    continue;
+                const json = JSON.parse(clean);
+                if (json.response) {
+                    responseBox.innerText += json.response;
                 }
-
-                if (parsed.response) {
-                    responseBox.innerText += parsed.response;
-                }
-
-            } catch {
-                console.warn("JSON inválido recebido:", jsonText);
+            } catch (err) {
+                console.warn("Fragmento JSON inválido (normal em chunks):", clean);
             }
         }
     }
