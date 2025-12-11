@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Cluster Manager</title>
+<link rel="stylesheet" href="/css/cluster.css">
+
+<style>
+    .nav-bar {
+        display:flex;
+        gap:10px;
+        margin-bottom:20px;
+    }
+    .nav-bar a {
+        padding:8px 14px;
+        background:#333;
+        color:white;
+        border-radius:5px;
+        text-decoration:none;
+    }
+    .nav-bar a:hover {
+        background:#555;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="nav-bar">
+    <a href="/">Console</a>
+    <a href="/cluster">Cluster Manager</a>
+</div>
+
+<div class="container">
+    <h2>Gerenciador de Servidores Ollama</h2>
+
+    <div class="status-box">
+        <span id="serversOnline">0</span> servidores online de <span id="serversTotal">0</span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>URL</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="serverTable"></tbody>
+    </table>
+
+    <br>
+
+    <h3>Adicionar Servidor</h3>
+    <input id="newServerUrl" placeholder="http://192.168.6.X:11434">
+    <button onclick="addServer()">Adicionar</button>
+</div>
+
+<script src="/js/cluster.js"></script>
+</body>
+</html>
